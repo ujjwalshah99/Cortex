@@ -8,6 +8,10 @@ import { fileURLToPath } from 'url';
 import { connectDB } from './db/connection.js';
 import { executionRouter } from './routes/execution.js';
 import { questionsRouter } from './routes/questions.js';
+import { sessionsRouter } from './routes/sessions.js';
+import { registerSocketHandlers } from './socket/handler.js';
+import { startSnapshotLoop, stopSnapshotLoop } from './services/snapshotLoop.js';
+import { startWriteBufferFlusher, stopWriteBufferFlusher, forceFlushAll } from './services/writeBufferFlusher.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,6 +22,7 @@ app.use(cors());
 
 app.use('/api', executionRouter);
 app.use('/api', questionsRouter);
+app.use('/api', sessionsRouter);
 
 const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer, {
@@ -40,13 +45,8 @@ if (process.env.NODE_ENV === 'production') {
   });
 }
 
-// Socket.io placeholder
-io.on('connection', (socket) => {
-  console.log(`Socket connected: ${socket.id}`);
-  socket.on('disconnect', () => {
-    console.log(`Socket disconnected: ${socket.id}`);
-  });
-});
+// Register Socket.io handlers
+registerSocketHandlers(io);
 
 const PORT = process.env.PORT || 3000;
 
@@ -55,7 +55,22 @@ async function start() {
   httpServer.listen(PORT, () => {
     console.log(`Cortex server running on port ${PORT}`);
   });
+
+  // Start background services
+  startSnapshotLoop();
+  startWriteBufferFlusher();
+  console.log('Snapshot loop started (30s interval)');
+  console.log('Write buffer flusher started (5s interval)');
 }
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, shutting down...');
+  stopSnapshotLoop();
+  stopWriteBufferFlusher();
+  await forceFlushAll();
+  process.exit(0);
+});
 
 start().catch((err) => {
   console.error('Failed to start server:', err);
