@@ -1,0 +1,29 @@
+{
+  "name": "cortex",
+  "version": "1.0.0",
+  "description": "AI-Assisted Coding Interview Platform",
+  "type": "module",
+  "main": "src/server/index.js",
+  "scripts": {
+    "start": "node src/server/index.js",
+    "dev": "node --watch src/server/index.js",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest --forceExit",
+    "build:client": "cd src/client && npm run build",
+    "build:docker": "./build-images.sh"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "mongoose": "^8.8.0",
+    "socket.io": "^4.8.0",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "@jest/globals": "^29.7.0",
+    "supertest": "^7.0.0"
+  },
+  "keywords": ["interview", "coding", "ai"],
+  "license": "MIT"
+}

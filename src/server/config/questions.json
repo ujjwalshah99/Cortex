@@ -1,0 +1,45 @@
+[
+  {
+    "id": "dsa-easy-001",
+    "title": "Two Sum",
+    "Full_question": "Given an array of integers nums and an integer target, return the indices of the two numbers such that they add up to target. You may assume that each input would have exactly one solution, and you may not use the same element twice. You can return the answer in any order.",
+    "short_description": "Find two numbers in an array that sum up to a specific target.",
+    "difficulty": { "numeric": 2, "label": "easy" },
+    "concepts": ["array", "hashing"],
+    "canonical_skeleton": {
+      "python": "def two_sum(nums, target):\n    # Write your solution here\n    pass",
+      "javascript": "function twoSum(nums, target) {\n    // Write your solution here\n}",
+      "java": "import java.util.*;\n\npublic class Main {\n    public static int[] twoSum(int[] nums, int target) {\n        // Write your solution here\n        return new int[]{};\n    }\n\n    public static void main(String[] args) {\n        // Test your solution\n    }\n}",
+      "c": "#include <stdio.h>\n#include <stdlib.h>\n\nint* twoSum(int* nums, int numsSize, int target, int* returnSize) {\n    // Write your solution here\n    *returnSize = 0;\n    return NULL;\n}",
+      "cpp": "#include <iostream>\n#include <vector>\n#include <unordered_map>\nusing namespace std;\n\nclass Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        // Write your solution here\n        return {};\n    }\n};"
+    },
+    "function_name": {
+      "python": "two_sum",
+      "javascript": "twoSum",
+      "java": "twoSum",
+      "c": "twoSum",
+      "cpp": "twoSum"
+    },
+    "test_harness": {
+      "python": "import json, sys\n_tests = json.loads(sys.stdin.read())\n_results = []\nfor _t in _tests:\n    try:\n        import time as _time\n        _s = _time.time()\n        _out = two_sum(_t['nums'], _t['target'])\n        _results.append({'output': _out, 'error': None, 'time_ms': round((_time.time() - _s) * 1000)})\n    except Exception as _e:\n        _results.append({'output': None, 'error': str(_e), 'time_ms': 0})\nprint(json.dumps(_results))",
+      "javascript": "const fs = require('fs');\nconst input = fs.readFileSync('/dev/stdin', 'utf8');\nconst tests = JSON.parse(input);\nconst results = tests.map(t => {\n  try {\n    const start = Date.now();\n    const out = twoSum(t.nums, t.target);\n    return { output: out, error: null, time_ms: Date.now() - start };\n  } catch (e) {\n    return { output: null, error: e.message, time_ms: 0 };\n  }\n});\nconsole.log(JSON.stringify(results));"
+    },
+    "public_tests": [
+      { "input": { "nums": [2, 7, 11, 15], "target": 9 }, "output": [0, 1] },
+      { "input": { "nums": [3, 2, 4], "target": 6 }, "output": [1, 2] },
+      { "input": { "nums": [3, 3], "target": 6 }, "output": [0, 1] }
+    ],
+    "hidden_tests": [
+      { "input": { "nums": [-1, -3, 5, 9], "target": 4 }, "output": [0, 2] },
+      { "input": { "nums": [1, 2, 3, 4, 5], "target": 9 }, "output": [3, 4] },
+      { "input": { "nums": [0, 0], "target": 0 }, "output": [0, 1] }
+    ],
+    "hint_templates": [
+      { "nudge": "What data structure allows O(1) lookups?" },
+      { "guide": "Consider using a hash map. As you iterate, store each number. For each new number, check if its complement exists in the map." },
+      { "direction": "Create an empty dictionary. Loop through the array with enumerate. For each value, compute target - value. Check if that complement is already in your dictionary. If yes, return both indices. If no, store the current value and index." }
+    ],
+    "constraints": { "time_ms": 5000, "memory_mb": 256 },
+    "edge_cases": ["Negative numbers", "Duplicate values", "Minimum array size (2 elements)"]
+  }
+]
