@@ -1,8 +1,37 @@
+# Dependencies
 node_modules/
+src/client/node_modules/
+
+# Environment
 .env
-tmp/
+.env.local
+.env.production
+
+# Build output
 build/
 dist/
 src/client/build/
+
+# Temp files (Docker sandbox)
+tmp/
+
+# Logs
 *.log
+npm-debug.log*
+
+# OS files
 .DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Coverage
+coverage/
+
+# Docker
+docker-compose.override.yml
