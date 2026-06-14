@@ -1,9 +1,11 @@
 import {
-  createSession, getSessionState, applyTelemetry, applyTabEvent, stopSession,
+  createSession, getSessionState, applyTelemetry, applyTabEvent, stopSession, recordSubmission,
 } from '../services/sessionManager.js';
 import { createTimer, getTimerState, stopTimer } from '../services/timerService.js';
 import { flushSession } from '../services/writeBufferFlusher.js';
 import { Session } from '../db/models/Session.js';
+import { sanitizeInput, checkRateLimit, applyInjectionCooldown } from '../services/promptGuard.js';
+import { enqueueEvent, processQueue } from '../services/interviewerBrain.js';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -87,6 +89,87 @@ export function registerSocketHandlers(io) {
         const { sessionId, type, timestamp } = data;
         if (sessionId) applyTabEvent(sessionId, { type, timestamp });
       } catch (err) { console.error('telemetry-meta error:', err.message); }
+    });
+
+    socket.on('chat-message', async (data) => {
+      try {
+        const { sessionId, text } = data;
+        if (!sessionId || !text) return;
+
+        const state = getSessionState(sessionId);
+        if (!state) return;
+
+        // Rate limit check
+        const rateCheck = checkRateLimit(state);
+        if (!rateCheck.allowed) {
+          socket.emit('interviewer-message', { text: rateCheck.reason, trigger: 'SYSTEM' });
+          return;
+        }
+
+        // Prompt injection check
+        const sanitized = sanitizeInput(text);
+        if (sanitized.blocked) {
+          applyInjectionCooldown(state);
+          socket.emit('interviewer-message', {
+            text: "Let's focus on the coding problem! Feel free to ask me about data structures, algorithms, or your approach.",
+            trigger: 'SYSTEM',
+          });
+          return;
+        }
+
+        // Update message tracking
+        state.messageCount = (state.messageCount || 0) + 1;
+        state.lastMessageTs = Date.now();
+
+        // Enqueue and process
+        enqueueEvent(sessionId, {
+          trigger: 'CANDIDATE_MESSAGE',
+          priority: 3,
+          userMessage: sanitized.sanitized,
+          code: state.currentCode,
+        });
+
+        await processQueue(sessionId, state, io);
+      } catch (err) {
+        console.error('chat-message error:', err);
+      }
+    });
+
+    socket.on('run-code', async (data) => {
+      // The execution routes handle the actual Docker run via REST.
+      // This handler is for triggering interviewer commentary on meaningful runs.
+      try {
+        const { sessionId, output, error, testResults } = data;
+        if (!sessionId) return;
+        const state = getSessionState(sessionId);
+        if (!state) return;
+
+        // Smart filtering: only comment on meaningful changes
+        const prevError = state.lastRunError;
+        const prevResults = state.lastRunTestResults;
+        const isFirstRun = state.submissions.length === 0;
+        const newErrorType = error && error !== prevError;
+        const breakthroughRun = !error && prevError && state.failureStreak >= 2;
+        const testCountChanged = testResults?.length > 0 && prevResults?.length > 0 &&
+          testResults.filter(t => t.passed).length !== prevResults.filter(t => t.passed).length;
+
+        // Record submission
+        recordSubmission(sessionId, { output, error, testResults, timestamp: Date.now() });
+
+        if (isFirstRun || newErrorType || breakthroughRun || testCountChanged) {
+          enqueueEvent(sessionId, {
+            trigger: 'CODE_RUN',
+            priority: 2,
+            code: state.currentCode,
+            runOutput: output,
+            runError: error,
+            testResults,
+          });
+          await processQueue(sessionId, state, io);
+        }
+      } catch (err) {
+        console.error('run-code commentary error:', err);
+      }
     });
 
     socket.on('reconnect-session', async (data) => {
