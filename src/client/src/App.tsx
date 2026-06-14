@@ -2,6 +2,8 @@ import React, { useState, useCallback } from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
 import EntryPage from './views/EntryPage';
 import InterviewPage from './views/InterviewPage';
+import AnalyticsListPage from './views/AnalyticsListPage';
+import AnalyticsDetailPage from './views/AnalyticsDetailPage';
 import { getSocket } from './socket';
 import { useSessionRecovery } from './hooks/useSessionRecovery';
 import type { QuestionItem, SessionCreated } from './types';
@@ -28,6 +30,8 @@ function App() {
     <Routes>
       <Route path="/" element={<EntryPage onStart={handleStart} />} />
       <Route path="/interview" element={data ? <InterviewPage {...data} /> : <EntryPage onStart={handleStart} />} />
+      <Route path="/analytics" element={<AnalyticsListPage />} />
+      <Route path="/analytics/:id" element={<AnalyticsDetailPage />} />
     </Routes>
   );
 }
