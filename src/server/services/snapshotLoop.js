@@ -2,6 +2,7 @@ import { getAllSessionIds, getSessionState } from './sessionManager.js';
 import { computeStuckIndex, markEscalation, deriveHelpLevel } from './heuristicEngine.js';
 import { evaluateWithSLM } from './slmGateway.js';
 import { Snapshot } from '../db/models/Snapshot.js';
+import { logInterventionStart, hasActiveObservation } from './rlFeedbackLogger.js';
 
 let loopInterval = null;
 const SNAPSHOT_INTERVAL_MS = 30000;
@@ -49,11 +50,12 @@ async function processSnapshot(sessionId, state) {
   if (heuristic.shouldEscalate || heuristic.inWarmZone) {
     const slmResult = await evaluateWithSLM(state, metrics);
 
-    if (slmResult.shouldCallLlm) {
+    if (slmResult.shouldCallLlm && !hasActiveObservation(sessionId)) {
       markEscalation(sessionId);
       // Signal to interviewer brain that proactive guidance is needed
       // This will be consumed by Plan 5 (interviewerBrain.js)
       state._pendingProactiveGuidance = true;
+      // RL logging will happen when the interviewer brain actually sends the message
       console.log(`[SLM] Session ${sessionId}: stuck detected (S=${heuristic.stuckIndex}, help=${state.helpLevel})`);
     }
   } else {

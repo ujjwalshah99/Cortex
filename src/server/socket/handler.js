@@ -1,6 +1,7 @@
 import {
   createSession, getSessionState, applyTelemetry, applyTabEvent, stopSession, recordSubmission,
 } from '../services/sessionManager.js';
+import { generateInterviewSummary } from '../services/summaryGenerator.js';
 import { createTimer, getTimerState, stopTimer } from '../services/timerService.js';
 import { flushSession } from '../services/writeBufferFlusher.js';
 import { Session } from '../db/models/Session.js';
@@ -49,9 +50,13 @@ export function registerSocketHandlers(io) {
         socket.join(sessionId);
 
         // Start timer
-        createTimer(sessionId, startTime, timeLimit, (sid) => {
+        createTimer(sessionId, startTime, timeLimit, async (sid) => {
           stopSession(sid, 'timeout');
           io.to(sid).emit('session-timeout', {});
+          try {
+            const summary = await generateInterviewSummary(sid);
+            if (summary) io.to(sid).emit('session-ended', { interviewSummary: summary });
+          } catch {}
         });
 
         // Timer sync every 10s
